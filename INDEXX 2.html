@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لعبة الريسك الكروية - فريقين</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+      direction: rtl;
+    }
+
+    .container {
+      max-width: 1150px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    header h1 {
+      font-size: 2.3rem;
+      background: linear-gradient(90deg, #00f2fe, #4facfe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      color: #aaa;
+      font-size: 1.05rem;
+    }
+
+    /* شاشة البداية */
+    .start-screen {
+      max-width: 480px;
+      margin: 60px auto;
+      background: rgba(255,255,255,0.06);
+      padding: 35px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+    }
+
+    .start-screen h2 {
+      margin-bottom: 25px;
+      color: #00f2fe;
+    }
+
+    .start-screen input {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      font-size: 1.1rem;
+      text-align: center;
+      outline: none;
+    }
+
+    .start-screen input:focus {
+      box-shadow: 0 0 0 2px #00f2fe;
+    }
+
+    /* لوحة النتائج */
+    .score-board {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .score-box {
+      background: rgba(255,255,255,0.08);
+      padding: 14px 28px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      min-width: 180px;
+      text-align: center;
+      transition: 0.3s;
+    }
+
+    .score-box.active-turn {
+      border-color: #00f2fe;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+      background: rgba(0, 242, 254, 0.1);
+    }
+
+    .score-box .team-name {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+
+    .score-box .points {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #00f2fe;
+    }
+
+    .turn-indicator {
+      text-align: center;
+      margin-bottom: 18px;
+      font-size: 1.2rem;
+      color: #ffd700;
+    }
+
+    /* اللوحة */
+    .board {
+      display: grid;
+      grid-template-columns: 150px repeat(5, 1fr);
+      gap: 7px;
+      margin-bottom: 25px;
+    }
+
+    .cell {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 16px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-weight: 600;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .cell:hover:not(.used):not(.header):not(.points) {
+      background: rgba(0, 242, 254, 0.15);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(0, 242, 254, 0.2);
+    }
+
+    .cell.header {
+      background: rgba(0, 242, 254, 0.15);
+      cursor: default;
+      font-size: 0.88rem;
+      color: #00f2fe;
+    }
+
+    .cell.points {
+      background: rgba(255,255,255,0.05);
+      cursor: default;
+      color: #ffd700;
+      font-size: 1.05rem;
+    }
+
+    .cell.used {
+      background: rgba(0,0,0,0.45);
+      color: #555;
+      cursor: not-allowed;
+      text-decoration: line-through;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.87);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 540px;
+      width: 100%;
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      box-shadow: 0 0 40px rgba(0, 242, 254, 0.15);
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      color: #00f2fe;
+      margin-bottom: 12px;
+      font-size: 1.25rem;
+    }
+
+    .question-text {
+      font-size: 1.22rem;
+      line-height: 1.65;
+      margin-bottom: 22px;
+      color: #eee;
+    }
+
+    .timer {
+      font-size: 2.3rem;
+      font-weight: bold;
+      color: #ff6b6b;
+      margin-bottom: 18px;
+    }
+
+    .answer-input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      font-size: 1.15rem;
+      text-align: center;
+      margin-bottom: 18px;
+      outline: none;
+    }
+
+    .answer-input:focus {
+      background: rgba(255,255,255,0.15);
+      box-shadow: 0 0 0 2px #00f2fe;
+    }
+
+    .btn {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, #00f2fe, #4facfe);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      transform: scale(1.05);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    .result-msg {
+      margin-top: 16px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      min-height: 28px;
+    }
+
+    .correct { color: #00ff9d; }
+    .wrong { color: #ff6b6b; }
+
+    .controls {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 35px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- شاشة البداية -->
+    <div class="start-screen" id="startScreen">
+      <h2>أدخل أسماء الفريقين</h2>
+      <input type="text" id="team1Name" placeholder="اسم الفريق الأول" value="الفريق الأحمر">
+      <input type="text" id="team2Name" placeholder="اسم الفريق الثاني" value="الفريق الأزرق">
+      <br><br>
+      <button class="btn btn-primary" onclick="startGame()">ابدأ اللعبة</button>
+    </div>
+
+    <!-- اللعبة نفسها -->
+    <div id="gameScreen" class="hidden">
+      <header>
+        <h1>لعبة الريسك الكروية</h1>
+        <p>فريقين يتنافسا على النقاط</p>
+      </header>
+
+      <div class="score-board">
+        <div class="score-box" id="team1Box">
+          <div class="team-name" id="displayTeam1">الفريق 1</div>
+          <div class="points" id="score1">0</div>
+        </div>
+        <div class="score-box" id="team2Box">
+          <div class="team-name" id="displayTeam2">الفريق 2</div>
+          <div class="points" id="score2">0</div>
+        </div>
+      </div>
+
+      <div class="turn-indicator">
+        دور: <span id="currentTurnName">الفريق 1</span>
+      </div>
+
+      <div class="board" id="board"></div>
+
+      <div class="controls">
+        <button class="btn btn-secondary" onclick="location.reload()">لعبة جديدة</button>
+      </div>
+    </div>
+
+    <footer>نموذج تجريبي - لعبة الريسك الكروية (فريقين)</footer>
+  </div>
+
+  <!-- Modal السؤال -->
+  <div class="modal" id="questionModal">
+    <div class="modal-content">
+      <h2 id="modalCategory">الفئة</h2>
+      <div class="timer" id="timer">25</div>
+      <div class="question-text" id="questionText">السؤال هنا</div>
+      <input type="text" class="answer-input" id="answerInput" placeholder="اكتب إجابتك هنا..." autocomplete="off">
+      <div>
+        <button class="btn btn-primary" id="submitBtn" onclick="checkAnswer()">تأكيد الإجابة</button>
+      </div>
+      <div class="result-msg" id="resultMsg"></div>
+    </div>
+  </div>
+
+  <script>
+    // ================== البيانات ==================
+    const categories = [
+      "دوري أبطال أوروبا",
+      "الدوري الإنجليزي",
+      "كأس العالم",
+      "الأندية العربية",
+      "الانتقالات"
+    ];
+
+    const pointsLevels = [5, 10, 20, 40];
+
+    // بنك أسئلة مرتب حسب الصعوبة (كل مستوى أصعب من اللي قبله)
+    const questionsBank = {
+      "دوري أبطال أوروبا": {
+        5: [
+          { q: "من هو أكثر نادٍ فوزًا بدوري أبطال أوروبا؟", a: ["ريال مدريد", "الريال", "ريال"] },
+          { q: "من فاز بدوري أبطال أوروبا 2023؟", a: ["مانشستر سيتي", "السيتي"] },
+          { q: "ما هو لون قميص نادي برشلونة الأساسي؟", a: ["أزرق وأحمر", "الأزرق والأحمر", "بلوgrana"] },
+          { q: "من سجل هدف الفوز لليفربول في نهائي 2019؟", a: ["أوريجي", "اوريجي", "ديفوك أوريجي"] },
+          { q: "أين يقع ملعب سان سيرو؟", a: ["ميلان", "إيطاليا", "ايطاليا"] },
+          { q: "من هو نادي لندن الذي وصل نهائي دوري الأبطال 2019؟", a: ["توتنهام", "توتنهام هوتسبير"] }
+        ],
+        10: [
+          { q: "من هو الهداف التاريخي لدوري أبطال أوروبا؟", a: ["كريستيانو رونالدو", "رونالدو", "سي آر 7"] },
+          { q: "من سجل هدفين في نهائي 2014 لريال مدريد؟", a: ["سيرجيو راموس", "راموس", "غareth بيل", "بيل"] },
+          { q: "في أي عام فاز بورتو بدوري الأبطال بقيادة مورينيو؟", a: ["2004"] },
+          { q: "من فاز بلقب هداف دوري الأبطال موسم 2019-2020؟", a: ["روبرت ليفاندوفسكي", "ليفاندوفسكي"] },
+          { q: "من هو المدرب الذي قاد تشيلسي للقب 2012؟", a: ["دي ماتيو", "روبرتو دي ماتيو"] },
+          { q: "كم مرة فاز بايرن ميونخ بدوري الأبطال؟", a: ["6", "ستة"] }
+        ],
+        20: [
+          { q: "من سجل هاتريك في نهائي دوري أبطال أوروبا 1960؟", a: ["فيرينس بوشكاش", "بوشكاش"] },
+          { q: "من هو أصغر لاعب يسجل في نهائي دوري أبطال أوروبا؟", a: ["باتريك كلويفرت", "كلويفرت"] },
+          { q: "في أي موسم فاز نادي بورتو باللقب تحت قيادة مورينيو؟", a: ["2003-2004", "2004"] },
+          { q: "من سجل هدف الفوز ليوفنتوس في نصف نهائي 2017 ضد برشلونة؟", a: ["خوان كوادرادو", "كوادرادو"] },
+          { q: "كم عدد الأهداف التي سجلها كريستيانو في موسم 2013-2014 بدوري الأبطال؟", a: ["17"] },
+          { q: "من هو الحارس الذي تصدى لركلتي جزاء في نهائي 2008؟", a: ["فان دير سار", "إدوين فان دير سار"] }
+        ],
+        40: [
+          { q: "من سجل هدف التعادل ليوفنتوس في نهائي 2003 بطريقة مزدوجة؟", a: ["نيدفيد", "بافيل نيدفيد"] },
+          { q: "في أي دقيقة سجل زيدان هدفه التاريخي في نهائي 2002؟", a: ["45", "الدقيقة 45"] },
+          { q: "من هو اللاعب الذي سجل في 3 نهائيات متتالية لدوري الأبطال؟", a: ["كريستيانو رونالدو", "رونالدو"] },
+          { q: "من سجل هدف الفوز لبوروسيا دورتموند في نهائي 1997؟", a: ["لارس ريكن", "ريكن"] },
+          { q: "كم عدد البطولات التي فاز بها ريال مدريد في عهد فلورنتينو بيريز الأول (2000-2006)؟", a: ["1", "واحدة", "بطولة واحدة"] },
+          { q: "من هو المدرب الذي قاد أياكس للثلاثية الأوروبية 1995؟", a: ["لويس فان خال", "فان خال"] }
+        ]
+      },
+      "الدوري الإنجليزي": {
+        5: [
+          { q: "من هو أكثر نادٍ فوزًا بالدوري الإنجليزي الممتاز؟", a: ["مانشستر يونايتد", "اليونايتد", "مان يونايتد"] },
+          { q: "من فاز بلقب الهداف موسم 2022-2023؟", a: ["إرلينج هالاند", "هالاند", "هالند"] },
+          { q: "ما هو لقب نادي ليفربول؟", a: ["الريدز", "الريدز"] },
+          { q: "أين يقع ملعب أولد ترافورد؟", a: ["مانشستر"] },
+          { q: "من هو صاحب الرقم القياسي في عدد الأهداف في موسم واحد بالدوري الإنجليزي؟", a: ["إرلينج هالاند", "هالاند"] },
+          { q: "من فاز بالدوري الإنجليزي موسم 2015-2016؟", a: ["ليستر سيتي", "ليستر"] }
+        ],
+        10: [
+          { q: "من هو المدرب الذي قاد ليستر سيتي للقب التاريخي؟", a: ["كلاوديو رانيري", "رانيري"] },
+          { q: "كم نقطة جمعها مانشستر سيتي في موسم 2017-2018؟", a: ["100", "مية"] },
+          { q: "من سجل 34 هدفًا في موسم 1993-1994 مع نيوكاسل؟", a: ["أندي كول", "كول"] },
+          { q: "من هو الهداف التاريخي للدوري الإنجليزي الممتاز؟", a: ["آلان شيرر", "شيرر"] },
+          { q: "في أي عام هبط نادي ليدز يونايتد آخر مرة قبل عودته؟", a: ["2004"] },
+          { q: "من فاز بجائزة أفضل لاعب في الدوري موسم 2021-2022؟", a: ["كيفن دي بروين", "دي بروين", "كيفن دي بروين"] }
+        ],
+        20: [
+          { q: "من سجل هدف الفوز لأرسنال في مباراة تتويجهم باللقب على ملعب وايت هارت لين 2004؟", a: ["تييري هنري", "هنري"] },
+          { q: "كم عدد الأهداف التي سجلها محمد صلاح في موسم 2017-2018؟", a: ["32"] },
+          { q: "من هو الحارس الذي لم تستقبل شباكه هدفًا في 14 مباراة متتالية؟", a: ["إدوين فان دير سار", "فان دير سار"] },
+          { q: "من سجل هاتريك في أقل من 3 دقائق بالدوري الإنجليزي؟", a: ["سعدو ماني", "ماني"] },
+          { q: "في أي موسم حقق أرسنال اللقب بدون هزيمة؟", a: ["2003-2004", "2004"] },
+          { q: "من هو اللاعب الذي سجل 260 هدفًا بالدوري الإنجليزي؟", a: ["واين روني", "روني"] }
+        ],
+        40: [
+          { q: "من سجل الهدف رقم 100 في تاريخ الدوري الإنجليزي الممتاز؟", a: ["إريك كانتونا", "كانتونا"] },
+          { q: "كم عدد التمريرات الحاسمة التي صنعها كيفن دي بروين في موسم 2019-2020؟", a: ["20"] },
+          { q: "من هو أصغر لاعب يسجل هاتريك في الدوري الإنجليزي الممتاز؟", a: ["مايكل أوين", "أوين"] },
+          { q: "في أي مباراة سجل تيري هنري هدفه رقم 100 مع أرسنال؟", a: ["ضد ليفربول", "ليفربول"] },
+          { q: "من سجل هدف الفوز لمانشستر يونايتد في الدقائق الأخيرة ضد بايرن ميونخ 1999 (رغم أنها دوري أبطال)؟", a: ["سوليسيكير", "أولي جونار سوليسيكير"] },
+          { q: "كم مرة فاز آلان شيرر بلقب هداف الدوري الإنجليزي؟", a: ["3", "ثلاث مرات"] }
+        ]
+      },
+      "كأس العالم": {
+        5: [
+          { q: "من فاز بكأس العالم 2022؟", a: ["الأرجنتين", "الارجنتين"] },
+          { q: "من هو الهداف التاريخي لكأس العالم؟", a: ["ميروسلاف كلوزه", "كلوزه", "كلوزة"] },
+          { q: "في أي دولة أقيمت كأس العالم 2018؟", a: ["روسيا"] },
+          { q: "من فاز بكأس العالم 2014؟", a: ["ألمانيا", "المانيا"] },
+          { q: "من سجل هدف الفوز في نهائي 2010؟", a: ["أندريس إنييستا", "انييستا", "إنستا"] },
+          { q: "كم مرة فازت البرازيل بكأس العالم؟", a: ["5", "خمس مرات"] }
+        ],
+        10: [
+          { q: "من سجل هدفين في نهائي كأس العالم 1998؟", a: ["زين الدين زيدان", "زيدان"] },
+          { q: "في أي دولة أقيمت كأس العالم 2010؟", a: ["جنوب أفريقيا", "جنوب افريقيا"] },
+          { q: "من هو الحارس الذي تصدى لركلتي جزاء في نهائي 2006؟", a: ["جيانلويجي بوفون", "بوفون"] },
+          { q: "من سجل أسرع هدف في تاريخ كأس العالم؟", a: ["هاكان شكور", "شكور"] },
+          { q: "من فاز بجائزة الكرة الذهبية في كأس العالم 2014؟", a: ["ليونيل ميسي", "ميسي"] },
+          { q: "كم هدف سجل روناالدو الظاهرة في كأس العالم 2002؟", a: ["8"] }
+        ],
+        20: [
+          { q: "من سجل الهدف الذهبي لفرنسا في نصف نهائي 1998 ضد كرواتيا؟", a: ["ليليان ثورام", "ثورام"] },
+          { q: "في أي دقيقة سجل جيف هورست هدف هولندا في نهائي 1974؟", a: ["2", "الدقيقة 2"] },
+          { q: "من هو أصغر لاعب يشارك في نهائي كأس العالم؟", a: ["بيليه", "بيلي"] },
+          { q: "كم عدد البطولات التي فاز بها بيليه؟", a: ["3", "ثلاث"] },
+          { q: "من سجل هدف التعادل لإنجلترا في نهائي 1966؟", a: ["جيري هيرست", "هيرست", "مارتن بيترز"] },
+          { q: "من هو المدرب الذي قاد إسبانيا للقب 2010؟", a: ["فيسنتي ديل بوسكي", "ديل بوسكي"] }
+        ],
+        40: [
+          { q: "من سجل هدف الفوز لألمانيا الغربية في نهائي 1954؟", a: ["هيلموت ران", "ران"] },
+          { q: "في أي ملعب أقيم نهائي كأس العالم 1994؟", a: ["روز بول", "روزبول", "باسadena"] },
+          { q: "من هو اللاعب الذي طُرد في نهائي كأس العالم 2006؟", a: ["زين الدين زيدان", "زيدان"] },
+          { q: "كم عدد الأهداف التي سجلها جوست فونتين في كأس العالم 1958؟", a: ["13"] },
+          { q: "من سجل هدف التقدم للأرجنتين في نهائي 1986؟", a: ["خوسيه لويس براون", "براون"] },
+          { q: "من هو الحكم الذي أدار نهائي كأس العالم 2002؟", a: ["بييرلويجي كولينا", "كولينا"] }
+        ]
+      },
+      "الأندية العربية": {
+        5: [
+          { q: "من هو أكثر نادٍ فوزًا بدوري أبطال أفريقيا؟", a: ["الأهلي", "الاهلي", "أهلي"] },
+          { q: "من فاز بكأس العالم للأندية 2023؟", a: ["مانشستر سيتي", "السيتي"] },
+          { q: "ما هو لقب نادي الزمالك؟", a: ["الفارس الأبيض", "القلعة البيضاء"] },
+          { q: "من هو الهداف التاريخي للأهلي المصري؟", a: ["محمود الخطيب", "الخطيب"] },
+          { q: "في أي دولة يلعب نادي الهلال؟", a: ["السعودية", "المملكة العربية السعودية"] },
+          { q: "من فاز بدوري أبطال أفريقيا 2020؟", a: ["الأهلي", "الاهلي"] }
+        ],
+        10: [
+          { q: "في أي عام توج الزمالك بلقب دوري أبطال أفريقيا آخر مرة قبل 2024؟", a: ["2002"] },
+          { q: "من سجل هدف الفوز للأهلي في نهائي دوري أبطال أفريقيا 2020؟", a: ["عمرو السولية", "السولية", "محمد الشناوي"] },
+          { q: "من هو أكثر مدرب فوزًا بدوري أبطال أفريقيا؟", a: ["حسام البدري", "البدري"] },
+          { q: "كم مرة فاز الرجاء البيضاوي بدوري أبطال أفريقيا؟", a: ["3", "ثلاث"] },
+          { q: "من فاز بلقب هداف دوري أبطال أفريقيا 2023؟", a: ["بيرسي تاو", "تاو"] },
+          { q: "أين يقع ملعب القاهرة الدولي؟", a: ["القاهرة", "مصر"] }
+        ],
+        20: [
+          { q: "من سجل هدف الفوز للترجي في نهائي 2011 ضد الوداد؟", a: ["يوسف المساكني", "المساكني"] },
+          { q: "في أي عام فاز الوداد الرياضي بأول لقب دوري أبطال أفريقيا؟", a: ["1992"] },
+          { q: "من هو الهداف التاريخي لدوري أبطال أفريقيا؟", a: ["محمود الخطيب", "الخطيب"] },
+          { q: "كم مرة وصل الأهلي لنهائي كأس العالم للأندية؟", a: ["4", "أربع مرات"] },
+          { q: "من سجل هدفين في نهائي دوري أبطال أفريقيا 2012 مع الأهلي؟", a: ["محمد أبو تريكة", "أبو تريكة", "تريكة"] },
+          { q: "من هو الحارس الذي تصدى لركلة جزاء حاسمة في نهائي 2013؟", a: ["شريف إكرامي", "إكرامي"] }
+        ],
+        40: [
+          { q: "من سجل هدف الفوز للمصري في نهائي كأس أفريقيا للأندية أبطال الكؤوس 1999؟", a: ["حسام حسن", "حسام"] },
+          { q: "في أي عام فاز الإسماعيلي بدوري أبطال أفريقيا؟", a: ["1969"] },
+          { q: "من هو اللاعب الذي سجل في نهائيين مختلفين لدوري أبطال أفريقيا مع نادين مختلفين؟", a: ["أبو تريكة", "محمد أبو تريكة"] },
+          { q: "كم عدد البطولات الأفريقية التي فاز بها نادي الزمالك؟", a: ["5", "خمس"] },
+          { q: "من سجل هدف التقدم للأهلي في نصف نهائي كأس العالم للأندية 2006؟", a: ["محمد أبو تريكة", "تريكة"] },
+          { q: "من هو المدرب الذي قاد الأهلي لثلاثية 2005-2006؟", a: ["مانويل جوزيه", "جوزيه"] }
+        ]
+      },
+      "الانتقالات": {
+        5: [
+          { q: "من هو أغلى لاعب في تاريخ كرة القدم من حيث قيمة الانتقال؟", a: ["نيمار", "نيمار دا سيلفا"] },
+          { q: "إلى أي نادٍ انتقل كيليان مبابي صيف 2024؟", a: ["ريال مدريد", "الريال"] },
+          { q: "من انتقل من بوروسيا دورتموند إلى بايرن ميونخ في 2013؟", a: ["ماريو جوتزه", "جوتزه", "جوتسه"] },
+          { q: "كم بلغت قيمة انتقال جاريث بيل إلى ريال مدريد تقريبًا؟", a: ["100 مليون", "100", "مية مليون"] },
+          { q: "من انتقل من ليفربول إلى برشلونة في 2014؟", a: ["لويس سواريز", "سواريز"] },
+          { q: "إلى أي نادٍ انتقل هاري كين صيف 2023؟", a: ["بايرن ميونخ", "بايرن"] }
+        ],
+        10: [
+          { q: "كم بلغت قيمة انتقال نيمار إلى باريس سان جيرمان؟", a: ["222 مليون", "222"] },
+          { q: "من انتقل من أياكس إلى يوفنتوس مقابل 75 مليون يورو تقريبًا؟", a: ["كريستيان رونالدو", "رونالدو", "يوفنتوس"] },
+          { q: "من انتقل من أتلتيكو مدريد إلى تشيلسي في 2014؟", a: ["دييغو كوستا", "كوستا"] },
+          { q: "كم بلغت قيمة انتقال بول بوجبا إلى مانشستر يونايتد 2016؟", a: ["105 مليون", "105"] },
+          { q: "من انتقل من ساوثهامبتون إلى ليفربول مقابل 75 مليون؟", a: ["فيرجيل فان دايك", "فان دايك"] },
+          { q: "إلى أي نادٍ انتقل جود بيلينجهام صيف 2023؟", a: ["ريال مدريد", "الريال"] }
+        ],
+        20: [
+          { q: "من انتقل من بوروسيا دورتموند إلى مانشستر يونايتد في 2021؟", a: ["جاديون سانشو", "سانشو"] },
+          { q: "كم بلغت قيمة انتقال فيليب كوتينيو إلى برشلونة؟", a: ["145 مليون", "145", "160 مليون"] },
+          { q: "من انتقل من ليون إلى تشيلسي مقابل 80 مليون تقريبًا؟", a: ["نغولو كانتي", "كانتي"] },
+          { q: "من انتقل من أرسنال إلى برشلونة في 2011؟", a: ["سيسك فابريغاس", "فابريغاس"] },
+          { q: "كم بلغت قيمة انتقال روميلو لوكاكو إلى إنتر ميلان 2019؟", a: ["74 مليون", "74"] },
+          { q: "من انتقل من يوفنتوس إلى مانشستر يونايتد في 2018؟", a: ["ألكسيس سانشيز", "سانشيز"] }
+        ],
+        40: [
+          { q: "من انتقل من سامبدوريا إلى يوفنتوس مقابل رقم قياسي إيطالي آنذاك في 1992؟", a: ["جيانلوكا فيالي", "فيالي"] },
+          { q: "كم بلغت قيمة انتقال كاكا إلى ريال مدريد 2009؟", a: ["67 مليون", "65 مليون", "67"] },
+          { q: "من انتقل من بورتو إلى تشيلسي تحت قيادة مورينيو في 2004؟", a: ["ريكاردو كارفاليو", "كارفاليو", "باولو فيريرا"] },
+          { q: "من انتقل من أياكس إلى برشلونة في صفقة incl. bonus وصلت لـ 86 مليون؟", a: ["فرانكي دي يونج", "دي يونج"] },
+          { q: "كم بلغت قيمة انتقال ألفارو موراتا إلى تشيلسي 2017؟", a: ["66 مليون", "66", "70 مليون"] },
+          { q: "من انتقل من فياريال إلى أرسنال في 2021 بمبلغ كبير؟", a: ["إيميل سميث رو", "سميث رو"] }
+        ]
+      }
+    };
+
+    // ================== حالة اللعبة ==================
+    let team1 = { name: "الفريق الأحمر", score: 0 };
+    let team2 = { name: "الفريق الأزرق", score: 0 };
+    let currentTeam = 1; // 1 أو 2
+    let remaining = 20;
+    let currentQuestion = null;
+    let currentPoints = 0;
+    let currentCell = null;
+    let timerInterval = null;
+    let timeLeft = 25;
+
+    // ================== دوال مساعدة ==================
+    function normalize(text) {
+      return text
+        .trim()
+        .toLowerCase()
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .replace(/\s+/g, ' ');
+    }
+
+    function startGame() {
+      const name1 = document.getElementById('team1Name').value.trim() || "الفريق الأحمر";
+      const name2 = document.getElementById('team2Name').value.trim() || "الفريق الأزرق";
+
+      team1.name = name1;
+      team2.name = name2;
+
+      document.getElementById('displayTeam1').textContent = team1.name;
+      document.getElementById('displayTeam2').textContent = team2.name;
+      document.getElementById('currentTurnName').textContent = team1.name;
+
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+
+      updateTurnUI();
+      buildBoard();
+    }
+
+    function updateTurnUI() {
+      document.getElementById('team1Box').classList.toggle('active-turn', currentTeam === 1);
+      document.getElementById('team2Box').classList.toggle('active-turn', currentTeam === 2);
+      document.getElementById('currentTurnName').textContent = currentTeam === 1 ? team1.name : team2.name;
+    }
+
+    function buildBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+
+      // الصف الأول
+      const empty = document.createElement('div');
+      empty.className = 'cell points';
+      board.appendChild(empty);
+
+      categories.forEach(cat => {
+        const cell = document.createElement('div');
+        cell.className = 'cell header';
+        cell.textContent = cat;
+        board.appendChild(cell);
+      });
+
+      // باقي الصفوف
+      pointsLevels.forEach(p => {
+        const pointsCell = document.createElement('div');
+        pointsCell.className = 'cell points';
+        pointsCell.textContent = p + ' نقطة';
+        board.appendChild(pointsCell);
+
+        categories.forEach(cat => {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.textContent = p;
+          cell.dataset.category = cat;
+          cell.dataset.points = p;
+
+          cell.addEventListener('click', () => openQuestion(cat, p, cell));
+          board.appendChild(cell);
+        });
+      });
+    }
+
+    function openQuestion(category, pointsValue, cell) {
+      if (cell.classList.contains('used')) return;
+
+      const pool = questionsBank[category][pointsValue];
+      currentQuestion = pool[Math.floor(Math.random() * pool.length)];
+      currentPoints = pointsValue;
+      currentCell = cell;
+
+      document.getElementById('modalCategory').textContent = `${category} - ${pointsValue} نقطة`;
+      document.getElementById('questionText').textContent = currentQuestion.q;
+      document.getElementById('answerInput').value = '';
+      document.getElementById('resultMsg').textContent = '';
+      document.getElementById('answerInput').style.display = 'block';
+      document.getElementById('submitBtn').style.display = 'inline-block';
+
+      timeLeft = 25;
+      document.getElementById('timer').textContent = timeLeft;
+      document.getElementById('questionModal').classList.add('active');
+      document.getElementById('answerInput').focus();
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          endQuestion(false, true);
+        }
+      }, 1000);
+    }
+
+    function checkAnswer() {
+      const userAnswer = document.getElementById('answerInput').value.trim();
+      if (!userAnswer) return;
+
+      clearInterval(timerInterval);
+
+      const normalizedUser = normalize(userAnswer);
+      let isCorrect = false;
+
+      for (let ans of currentQuestion.a) {
+        const normalizedAns = normalize(ans);
+        if (normalizedUser.includes(normalizedAns) || normalizedAns.includes(normalizedUser)) {
+          isCorrect = true;
+          break;
+        }
+      }
+
+      endQuestion(isCorrect);
+    }
+
+    function endQuestion(isCorrect, timeout = false) {
+      const resultMsg = document.getElementById('resultMsg');
+      document.getElementById('answerInput').style.display = 'none';
+      document.getElementById('submitBtn').style.display = 'none';
+
+      if (isCorrect) {
+        if (currentTeam === 1) {
+          team1.score += currentPoints;
+          document.getElementById('score1').textContent = team1.score;
+        } else {
+          team2.score += currentPoints;
+          document.getElementById('score2').textContent = team2.score;
+        }
+        resultMsg.innerHTML = `<span class="correct">إجابة صحيحة! +${currentPoints} نقطة</span>`;
+      } else {
+        resultMsg.innerHTML = `<span class="wrong">${timeout ? 'انتهى الوقت!' : 'إجابة خاطئة!'}<br>الإجابة: ${currentQuestion.a[0]}</span>`;
+      }
+
+      remaining--;
+      currentCell.classList.add('used');
+      currentCell.style.pointerEvents = 'none';
+
+      // تبديل الدور
+      currentTeam = currentTeam === 1 ? 2 : 1;
+      updateTurnUI();
+
+      setTimeout(() => {
+        document.getElementById('questionModal').classList.remove('active');
+
+        if (remaining === 0) {
+          setTimeout(() => {
+            let winnerMsg = '';
+            if (team1.score > team2.score) {
+              winnerMsg = `فاز ${team1.name} بنتيجة ${team1.score} - ${team2.score}`;
+            } else if (team2.score > team1.score) {
+              winnerMsg = `فاز ${team2.name} بنتيجة ${team2.score} - ${team1.score}`;
+            } else {
+              winnerMsg = `تعادل! ${team1.score} - ${team2.score}`;
+            }
+            alert('انتهت اللعبة!\n' + winnerMsg);
+          }, 400);
+        }
+      }, 2600);
+    }
+
+    // دعم Enter
+    document.getElementById('answerInput').addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') checkAnswer();
+    });
+  </script>
+</body>
+</html>
